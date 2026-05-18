@@ -1,0 +1,203 @@
+/* Login page - Urban night parking theme */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+/* ── Animated background ── */
+.login-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.parking-lines {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 20px 0;
+}
+
+.parking-line {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 214, 0, 0.03) 20%,
+    rgba(255, 214, 0, 0.12) 50%,
+    rgba(255, 214, 0, 0.03) 80%,
+    transparent 100%
+  );
+  animation: line-sweep 4s ease-in-out infinite alternate;
+}
+
+@keyframes line-sweep {
+  0%   { opacity: 0.3; transform: scaleX(0.6); }
+  100% { opacity: 1;   transform: scaleX(1); }
+}
+
+.car-lights {
+  position: absolute;
+  inset: 0;
+}
+
+.car-light {
+  position: absolute;
+  width: 200px;
+  height: 3px;
+  border-radius: 2px;
+  animation: car-pass 6s linear infinite;
+}
+
+.car-light:nth-child(odd) {
+  background: linear-gradient(90deg, transparent, rgba(255,200,50,0.6), rgba(255,255,255,0.8), transparent);
+  left: -220px;
+}
+
+.car-light:nth-child(even) {
+  background: linear-gradient(270deg, transparent, rgba(255,50,50,0.4), rgba(255,0,0,0.6), transparent);
+  right: -220px;
+  animation-direction: reverse;
+}
+
+@keyframes car-pass {
+  0%   { transform: translateX(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(120vw); opacity: 0; }
+}
+
+.bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+.bg-glow-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(255,107,0,0.12) 0%, transparent 70%);
+  top: -100px; left: -100px;
+  animation: float-glow 8s ease-in-out infinite alternate;
+}
+.bg-glow-2 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(255,214,0,0.08) 0%, transparent 70%);
+  bottom: -150px; right: -150px;
+  animation: float-glow 10s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes float-glow {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, 30px) scale(1.1); }
+}
+
+/* ── Login container ── */
+.login-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ── Login card ── */
+.login-card {
+  width: 100%;
+  padding: 36px 32px;
+  animation: slideUp 0.4s ease;
+  border: 1px solid rgba(255,107,0,0.15);
+}
+
+/* ── Logo section ── */
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.login-logo-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--neon-orange), var(--neon-amber));
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #000;
+  box-shadow: 0 6px 25px var(--neon-orange-glow), 0 0 60px rgba(255,107,0,0.15);
+  animation: pulse-orange 2s ease infinite;
+}
+
+.login-brand {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -1px;
+  animation: glow-text 3s ease infinite;
+}
+
+.login-tagline {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.login-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,107,0,0.3), transparent);
+  margin-bottom: 24px;
+}
+
+.login-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.login-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.login-form { margin-top: 4px; }
+.login-form .form-group { margin-bottom: 14px; }
+
+/* Default credentials hint */
+.login-hint {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: rgba(255,107,0,0.06);
+  border: 1px dashed rgba(255,107,0,0.2);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.login-footer {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
