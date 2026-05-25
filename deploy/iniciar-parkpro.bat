@@ -29,8 +29,10 @@ if not exist "%DATADIR%" (
   goto ARRANCAR_NODE
 )
 
-REM ---- 2. Arrancar MySQL si no está corriendo ----
-tasklist /FI "IMAGENAME eq mysqld.exe" | find /I "mysqld.exe" >nul
+REM ---- 2. Arrancar MySQL de ParkPro si el PUERTO 3307 no esta escuchando ----
+REM (Se verifica el puerto, NO si existe mysqld.exe, porque el equipo puede tener
+REM  otro MySQL del sistema corriendo en 3306; ese no es el de ParkPro.)
+netstat -ano | findstr ":%DBPORT%" | findstr LISTENING >nul
 if errorlevel 1 (
   start "" /B "%MYSQLD%" --datadir="%DATADIR%" --port=%DBPORT% --bind-address=127.0.0.1
   call :ESPERAR_MYSQL
