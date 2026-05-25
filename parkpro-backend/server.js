@@ -66,6 +66,18 @@ app.use('/api/whatsapp', require('./routes/whatsapp'));
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
 
+// Info de red: URL(s) a las que se conectan los demas dispositivos
+app.get('/api/red', (req, res) => {
+  const proto = USE_HTTPS ? 'https' : 'http';
+  const ips = obtenerIPsLocales();
+  res.json({
+    protocolo: proto,
+    puerto: PORT,
+    urls: ips.map((ip) => `${proto}://${ip}:${PORT}`),
+    urlLocal: `${proto}://localhost:${PORT}`,
+  });
+});
+
 // SPA fallback: cualquier ruta que no sea /api devuelve el index del frontend
 if (SERVE_STATIC) {
   app.get(/^(?!\/api).*/, (req, res) => {

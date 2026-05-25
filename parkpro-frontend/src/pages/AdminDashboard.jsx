@@ -16,6 +16,8 @@ function MetricCard({ icon, label, value, color }) {
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [red, setRed] = useState(null);
+  const [copiado, setCopiado] = useState('');
 
   useEffect(() => {
     const hoy = new Date().toISOString().split('T')[0];
@@ -35,7 +37,16 @@ export default function AdminDashboard() {
         mes: mesRes.data,
       });
     }).catch(console.error).finally(() => setLoading(false));
+
+    api.get('/red').then((res) => setRed(res.data)).catch(() => {});
   }, []);
+
+  const copiar = (texto) => {
+    navigator.clipboard?.writeText(texto).then(() => {
+      setCopiado(texto);
+      setTimeout(() => setCopiado(''), 2000);
+    }).catch(() => {});
+  };
 
   if (loading) {
     return <div className="loading-center"><div className="spinner" /><span>Cargando métricas...</span></div>;
@@ -52,6 +63,39 @@ export default function AdminDashboard() {
           {new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
+
+      {/* Tarjeta: URL para conectar otros dispositivos */}
+      {red && red.urls && red.urls.length > 0 && (
+        <div className="glass-card" style={{ padding: 20, marginBottom: 24, border: '1px solid rgba(255,107,0,0.35)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <span style={{ fontSize: '1.3rem' }}>📶</span>
+            <h2 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              Conectar celulares y otros equipos
+            </h2>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 14 }}>
+            Conecta el dispositivo a la misma red WiFi y abre esta dirección en el navegador:
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {red.urls.map((url) => (
+              <div key={url} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <code style={{
+                  flex: '1 1 240px', fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-mono)',
+                  color: 'var(--neon-yellow)', background: 'var(--bg-elevated)', padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', letterSpacing: '0.5px',
+                }}>{url}</code>
+                <button className="btn btn-secondary" onClick={() => copiar(url)}>
+                  {copiado === url ? '✅ Copiado' : '📋 Copiar'}
+                </button>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 12 }}>
+            ⚠️ La primera vez el navegador mostrará un aviso de seguridad (certificado propio): toca “Avanzado” → “Continuar”.
+            Para que la dirección no cambie, deja una IP fija al PC servidor en el router.
+          </p>
+        </div>
+      )}
 
       {/* Metrics grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
