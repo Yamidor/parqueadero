@@ -48,3 +48,5 @@ deploy/staging/
 deploy/salida/
 deploy/node/
 deploy/mysql/
+deploy/descargas/
+deploy/_preview_*.png

@@ -48,6 +48,8 @@ Name: "{group}\Iniciar ParkPro"; Filename: "{sys}\wscript.exe"; Parameters: """{
 Name: "{group}\Detener ParkPro"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\detener.vbs"""; WorkingDir: "{app}"
 
 [Run]
+; Instalar Visual C++ Redistributable (MySQL lo necesita en Windows limpio)
+Filename: "{app}\vcredist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Instalando componentes de Microsoft (VC++)..."; Flags: waituntilterminated
 ; Abrir el puerto 3001 en el Firewall de Windows para acceso desde la red
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""ParkPro 3001"" dir=in action=allow protocol=TCP localport=3001"; Flags: runhidden runascurrentuser
 ; Iniciar ParkPro al terminar de instalar (opcional, el usuario marca la casilla)

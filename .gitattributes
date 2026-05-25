@@ -1,0 +1,7 @@
+# Tratar estos archivos como binarios (sin conversion de saltos de linea)
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.exe binary
