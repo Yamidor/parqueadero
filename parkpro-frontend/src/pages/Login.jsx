@@ -102,11 +102,6 @@ export default function Login() {
               )}
             </button>
           </form>
-
-          <div className="login-hint">
-            <span>👤 admin@parkpro.com</span>
-            <span>🔑 Admin123!</span>
-          </div>
         </div>
 
         <div className="login-footer">

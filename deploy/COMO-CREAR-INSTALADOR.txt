@@ -150,5 +150,11 @@ internet). El resultado (.exe) lo llevas al PC del negocio en una USB.
 - Usuario admin por defecto:  admin@parkpro.com  /  Admin123!
   (cambialo desde el sistema despues de instalar).
 
-- Puerto: 3001. Si lo cambias, ajusta tambien el firewall y los scripts.
+- Puertos: el sistema usa 3001 (web) y 3307 (MySQL propio). Se eligio 3307 a
+  proposito para NO chocar con un MySQL que ya este instalado en el equipo (3306).
+  Asi ParkPro convive con otro MySQL/Node sin conflictos. Si ya hay un Node
+  instalado tampoco importa: ParkPro usa su propio Node interno.
+
+- Los iconos Iniciar/Detener solo afectan a ParkPro (puertos 3001 y 3307); no
+  detienen otros servicios del equipo.
 ============================================================

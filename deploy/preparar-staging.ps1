@@ -15,7 +15,10 @@
 #     .\preparar-staging.ps1
 # ============================================================
 
-$ErrorActionPreference = "Stop"
+# "Continue" para que los avisos de npm/vite (que van a stderr) no aborten el script.
+# Validamos el exito con $LASTEXITCODE despues de cada paso critico.
+$ErrorActionPreference = "Continue"
+function Verificar($msg) { if ($LASTEXITCODE -ne 0) { Write-Host "ERROR en: $msg (codigo $LASTEXITCODE)" -ForegroundColor Red; exit 1 } }
 $deploy   = $PSScriptRoot
 $raiz     = Split-Path $deploy -Parent
 $backend  = Join-Path $raiz "parkpro-backend"
@@ -24,18 +27,23 @@ $staging  = Join-Path $deploy "staging"
 
 Write-Host "==> 1/5 Asegurando dependencias del backend y certificado..." -ForegroundColor Cyan
 Push-Location $backend
-npm install
-node generar-certificado.js
+cmd /c "npm install"; Verificar "npm install backend"
+node generar-certificado.js; Verificar "generar certificado"
 Pop-Location
 
 Write-Host "==> 2/5 Compilando el frontend..." -ForegroundColor Cyan
 Push-Location $frontend
-npm install
-npm run build
+cmd /c "npm install"; Verificar "npm install frontend"
+cmd /c "npm run build"; Verificar "npm run build"
 Pop-Location
 
-Write-Host "==> 3/5 Limpiando staging anterior..." -ForegroundColor Cyan
-if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
+Write-Host "==> 3/5 Limpiando staging anterior (conserva node\ y mysql\)..." -ForegroundColor Cyan
+# Borrar solo las partes de la app; preservar node\ y mysql\ ya colocados
+foreach ($sub in @("parkpro-backend","parkpro-frontend","vcredist.x64.exe",
+                    "iniciar-parkpro.bat","iniciar.vbs","detener-parkpro.bat","detener.vbs")) {
+  $p = Join-Path $staging $sub
+  if (Test-Path $p) { Remove-Item -Recurse -Force $p }
+}
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $staging "parkpro-frontend") | Out-Null
 
@@ -51,10 +59,14 @@ Copy-Item (Join-Path $deploy "iniciar.vbs")         $staging -Force
 Copy-Item (Join-Path $deploy "detener-parkpro.bat") $staging -Force
 Copy-Item (Join-Path $deploy "detener.vbs")         $staging -Force
 if (Test-Path (Join-Path $deploy "parkpro.ico")) { Copy-Item (Join-Path $deploy "parkpro.ico") $staging -Force }
+# Visual C++ Redistributable (lo instala el instalador; requerido por MySQL)
+$vc = Join-Path $deploy "descargas\vcredist.x64.exe"
+if (Test-Path $vc) { Copy-Item $vc $staging -Force }
+else { Write-Host "AVISO: falta descargas\vcredist.x64.exe (descargalo de https://aka.ms/vs/17/release/vc_redist.x64.exe)" -ForegroundColor Yellow }
 
 Write-Host "==> 5/5 Podando dependencias de desarrollo en la copia (no afecta tu proyecto)..." -ForegroundColor Cyan
 Push-Location (Join-Path $staging "parkpro-backend")
-npm prune --omit=dev
+cmd /c "npm prune --omit=dev"
 Pop-Location
 
 Write-Host ""

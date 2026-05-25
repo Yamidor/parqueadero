@@ -15,22 +15,24 @@ set "MYSQLD=%BASE%mysql\bin\mysqld.exe"
 set "MYSQL=%BASE%mysql\bin\mysql.exe"
 set "MYSQLADMIN=%BASE%mysql\bin\mysqladmin.exe"
 set "DATADIR=%BASE%mysql\data"
+REM Puerto propio (3307) para NO chocar con un MySQL ya instalado en el equipo (3306)
+set "DBPORT=3307"
 
 REM ---- 1. Inicializar MySQL la PRIMERA vez ----
 if not exist "%DATADIR%" (
   echo Inicializando base de datos por primera vez...
   "%MYSQLD%" --initialize-insecure --datadir="%DATADIR%"
-  start "" /B "%MYSQLD%" --datadir="%DATADIR%" --port=3306 --bind-address=127.0.0.1
+  start "" /B "%MYSQLD%" --datadir="%DATADIR%" --port=%DBPORT% --bind-address=127.0.0.1
   REM esperar a que MySQL acepte conexiones
   call :ESPERAR_MYSQL
-  "%MYSQL%" -u root --skip-password -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '12345'; CREATE DATABASE IF NOT EXISTS parkpro CHARACTER SET utf8mb4; FLUSH PRIVILEGES;"
+  "%MYSQL%" -u root --skip-password --port=%DBPORT% -h 127.0.0.1 -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '12345'; CREATE DATABASE IF NOT EXISTS parkpro CHARACTER SET utf8mb4; FLUSH PRIVILEGES;"
   goto ARRANCAR_NODE
 )
 
 REM ---- 2. Arrancar MySQL si no está corriendo ----
 tasklist /FI "IMAGENAME eq mysqld.exe" | find /I "mysqld.exe" >nul
 if errorlevel 1 (
-  start "" /B "%MYSQLD%" --datadir="%DATADIR%" --port=3306 --bind-address=127.0.0.1
+  start "" /B "%MYSQLD%" --datadir="%DATADIR%" --port=%DBPORT% --bind-address=127.0.0.1
   call :ESPERAR_MYSQL
 )
 
@@ -38,6 +40,7 @@ if errorlevel 1 (
 REM ---- 3. Arrancar el servidor (HTTPS + frontend servido) ----
 set PARKPRO_HTTPS=true
 set PARKPRO_STATIC=true
+set DB_PORT=%DBPORT%
 cd /d "%BASE%parkpro-backend"
 start "" /B "%NODE%" server.js
 
@@ -51,9 +54,9 @@ REM Reintenta hasta 30 veces (cada 1s) hasta que MySQL responda
 setlocal
 set /a intentos=0
 :LOOP_MYSQL
-"%MYSQLADMIN%" --silent -u root -p12345 ping >nul 2>&1
+"%MYSQLADMIN%" --silent -h 127.0.0.1 --port=%DBPORT% -u root -p12345 ping >nul 2>&1
 if not errorlevel 1 goto MYSQL_OK
-"%MYSQLADMIN%" --silent -u root --skip-password ping >nul 2>&1
+"%MYSQLADMIN%" --silent -h 127.0.0.1 --port=%DBPORT% -u root --skip-password ping >nul 2>&1
 if not errorlevel 1 goto MYSQL_OK
 set /a intentos+=1
 if %intentos% geq 30 goto MYSQL_OK

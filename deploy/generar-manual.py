@@ -116,7 +116,7 @@ class DiagramaArquitectura(Flowable):
         self.caja(c, 16, 262, 142, 58, "Servidor ParkPro (Node.js)",
                   ["Express + Socket.IO", "Frontend + API", "HTTPS  puerto 3001"], NARANJA)
         self.caja(c, 170, 262, 142, 58, "Base de datos (MySQL)",
-                  ["Local 127.0.0.1:3306", "Datos del negocio"], AZUL)
+                  ["Local 127.0.0.1:3307", "Datos del negocio"], AZUL)
         self.caja(c, 324, 262, 142, 58, "WhatsApp (Baileys)",
                   ["Sesion guardada", "Requiere internet"], VERDE)
         # flechas internas entre cajas
@@ -287,6 +287,12 @@ story.append(vinetas([
     "No necesita tener nada instalado: el instalador trae todo (Node y MySQL incluidos).",
     "Recomendado: que ese PC quede siempre encendido durante el horario del negocio.",
     "Conectado al router del negocio (por cable o WiFi).",
+]))
+story.append(P("Si el equipo ya tiene Node o MySQL instalados", "H2"))
+story.append(vinetas([
+    "<b>Node ya instalado:</b> no hay problema. ParkPro usa su propio Node interno; ignora el del sistema.",
+    "<b>MySQL ya instalado:</b> tampoco hay conflicto. El MySQL de ParkPro usa el puerto <b>3307</b> (no el 3306 estandar), por lo que convive con cualquier MySQL existente sin chocar.",
+    "Los iconos Iniciar/Detener solo afectan a ParkPro (puertos 3001 y 3307); no tocan otros servicios del equipo.",
 ]))
 
 story.append(P("2.2 Que incluye el instalador", "H2"))
