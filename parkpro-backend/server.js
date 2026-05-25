@@ -1,22 +1,52 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { createDatabaseIfNotExists, sequelize } = require('./config/database');
 const { PORT, DEFAULT_ADMIN, DEFAULT_TARIFAS, DEFAULT_CONFIG } = require('./config/config');
 
+// ── Modo producción ──────────────────────────────────────────────
+// PARKPRO_HTTPS=true  → sirve por HTTPS con certificado (necesario para cámara/QR en red)
+// PARKPRO_STATIC=true → sirve el frontend ya compilado (parkpro-frontend/dist)
+const USE_HTTPS = process.env.PARKPRO_HTTPS === 'true';
+const SERVE_STATIC = process.env.PARKPRO_STATIC === 'true';
+const IS_PROD = USE_HTTPS || SERVE_STATIC;
+const DIST_PATH = path.resolve(__dirname, '..', 'parkpro-frontend', 'dist');
+const CERT_DIR = path.resolve(__dirname, 'certs');
+
 const app = express();
-const server = http.createServer(app);
+
+// Crear servidor HTTP o HTTPS según configuración
+let server;
+if (USE_HTTPS) {
+  const key = fs.readFileSync(path.join(CERT_DIR, 'key.pem'));
+  const cert = fs.readFileSync(path.join(CERT_DIR, 'cert.pem'));
+  server = https.createServer({ key, cert }, app);
+} else {
+  server = http.createServer(app);
+}
+
+// En producción (LAN) aceptamos cualquier origen; en dev solo Vite
+const corsOrigin = IS_PROD ? true : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
 const io = new Server(server, {
-  cors: { origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], methods: ['GET', 'POST'] },
+  cors: { origin: corsOrigin, methods: ['GET', 'POST'] },
 });
 
 // Make io accessible in controllers
 app.set('io', io);
 
 // Middleware
-app.use(cors({ origin: ['http://localhost:5173', 'http://127.0.0.1:5173'] }));
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
+
+// Servir frontend compilado (producción)
+if (SERVE_STATIC) {
+  app.use(express.static(DIST_PATH));
+}
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -35,6 +65,13 @@ app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+
+// SPA fallback: cualquier ruta que no sea /api devuelve el index del frontend
+if (SERVE_STATIC) {
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(DIST_PATH, 'index.html'));
+  });
+}
 
 // Socket.io connection
 io.on('connection', (socket) => {
@@ -192,15 +229,17 @@ async function init() {
     whatsappService.setIo(io);
     whatsappService.reanudarSiEstabaVinculado();
 
-    // 8. Start server
-    server.listen(PORT, () => {
+    // 8. Start server (escucha en todas las interfaces para acceso desde la red)
+    server.listen(PORT, '0.0.0.0', () => {
+      const proto = USE_HTTPS ? 'https' : 'http';
+      const ips = obtenerIPsLocales();
       console.log('');
       console.log('═══════════════════════════════════════════');
-      console.log('  🅿️  ParkPro Backend - Servidor Iniciado');
+      console.log('  🅿️  ParkPro - Servidor Iniciado');
       console.log('═══════════════════════════════════════════');
-      console.log(`  🌐 URL: http://localhost:${PORT}`);
-      console.log(`  👤 Admin: ${DEFAULT_ADMIN.email}`);
-      console.log(`  🔑 Password: ${DEFAULT_ADMIN.password}`);
+      console.log(`  🖥️  En este equipo:  ${proto}://localhost:${PORT}`);
+      ips.forEach((ip) => console.log(`  📱 En la red:       ${proto}://${ip}:${PORT}`));
+      console.log(`  👤 Admin: ${DEFAULT_ADMIN.email}  🔑 ${DEFAULT_ADMIN.password}`);
       console.log('═══════════════════════════════════════════');
       console.log('');
     });
@@ -208,6 +247,19 @@ async function init() {
     console.error('❌ Error inicializando el servidor:', error);
     process.exit(1);
   }
+}
+
+// Devuelve las IPv4 de red local (para mostrar la URL de acceso desde celulares)
+function obtenerIPsLocales() {
+  const os = require('os');
+  const nets = os.networkInterfaces();
+  const ips = [];
+  for (const nombre of Object.keys(nets)) {
+    for (const net of nets[nombre]) {
+      if (net.family === 'IPv4' && !net.internal) ips.push(net.address);
+    }
+  }
+  return ips;
 }
 
 init();

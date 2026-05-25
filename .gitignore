@@ -39,3 +39,12 @@ dist-ssr/
 **/.wwebjs_auth/
 **/.wwebjs_cache/
 **/.baileys_auth/
+
+# Certificados HTTPS (se generan con generar-certificado.js)
+**/certs/
+
+# Paquete de despliegue (se arma localmente)
+deploy/staging/
+deploy/salida/
+deploy/node/
+deploy/mysql/

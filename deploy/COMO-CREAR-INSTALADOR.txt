@@ -1,0 +1,154 @@
+============================================================
+ PARKPRO - COMO CREAR EL INSTALADOR (.exe)
+============================================================
+
+Objetivo: generar un solo archivo "ParkPro-Setup.exe" que el cliente
+ejecuta con doble clic. Despues, en el PC del negocio, solo usa los
+iconos del escritorio "Iniciar ParkPro" y "Detener ParkPro".
+
+Funciona SIN internet (parqueo, lavados, reportes, base de datos).
+Solo WhatsApp necesita internet; si no hay, el resto sigue funcionando.
+
+Todo lo que hagas AQUI se hace en TU PC de desarrollo (el que tiene
+internet). El resultado (.exe) lo llevas al PC del negocio en una USB.
+
+------------------------------------------------------------
+ PARTE 0 - LO QUE NECESITAS DESCARGAR (una sola vez, en tu PC)
+------------------------------------------------------------
+
+1) Inno Setup (para crear el instalador)
+   https://jrsoftware.org/isdl.php
+   Instalalo normal (siguiente, siguiente).
+
+2) Node.js PORTABLE (ZIP, NO el instalador)
+   https://nodejs.org/dist/v20.20.0/node-v20.20.0-win-x64.zip
+   (o la version que uses). Lo vas a descomprimir mas abajo.
+
+3) MySQL PORTABLE (ZIP Archive, NO el MSI)
+   https://dev.mysql.com/downloads/mysql/
+   Elige "Windows (x86, 64-bit), ZIP Archive".
+   (Tambien sirve MariaDB ZIP, es compatible.)
+
+------------------------------------------------------------
+ PARTE 1 - PREPARAR LA APLICACION (carpeta "staging")
+------------------------------------------------------------
+
+1) Abre PowerShell dentro de la carpeta "deploy" del proyecto:
+      cd deploy
+
+2) Ejecuta el preparador (compila frontend, genera certificado,
+   copia todo a staging\):
+      .\preparar-staging.ps1
+
+   Si PowerShell bloquea el script, primero corre:
+      Set-ExecutionPolicy -Scope Process -Bypass
+
+   Al terminar tendras la carpeta:  deploy\staging\
+   con dentro: parkpro-backend\, parkpro-frontend\dist\,
+   iniciar-parkpro.bat, iniciar.vbs, detener-parkpro.bat, detener.vbs
+
+------------------------------------------------------------
+ PARTE 2 - METER NODE Y MYSQL DENTRO DE staging
+------------------------------------------------------------
+
+1) NODE:
+   - Descomprime el ZIP de Node que bajaste.
+   - Copia su contenido en:   deploy\staging\node\
+   - Debe quedar asi:         deploy\staging\node\node.exe
+     (node.exe en la raiz de la carpeta node, no en una subcarpeta)
+
+2) MYSQL:
+   - Descomprime el ZIP de MySQL que bajaste.
+   - Copia su contenido en:   deploy\staging\mysql\
+   - Debe quedar asi:         deploy\staging\mysql\bin\mysqld.exe
+                              deploy\staging\mysql\bin\mysql.exe
+                              deploy\staging\mysql\bin\mysqladmin.exe
+   - NO crees la carpeta "data": se crea sola la primera vez que arranca.
+
+   Estructura final esperada de staging:
+      staging\
+        node\node.exe
+        mysql\bin\mysqld.exe
+        parkpro-backend\   (con node_modules y certs)
+        parkpro-frontend\dist\
+        iniciar-parkpro.bat
+        iniciar.vbs
+        detener-parkpro.bat
+        detener.vbs
+
+------------------------------------------------------------
+ PARTE 3 - COMPILAR EL INSTALADOR
+------------------------------------------------------------
+
+1) Abre el archivo  deploy\instalador.iss  con Inno Setup
+   (clic derecho -> Open with Inno Setup, o abre Inno y File->Open).
+
+2) Menu  Build -> Compile  (o presiona F9).
+
+3) Cuando termine, el instalador queda en:
+      deploy\salida\ParkPro-Setup.exe
+
+   Ese es el archivo que llevas al PC del negocio.
+
+------------------------------------------------------------
+ PARTE 4 - INSTALAR EN EL PC DEL NEGOCIO (lo hace el cliente)
+------------------------------------------------------------
+
+1) Copia "ParkPro-Setup.exe" a una USB y llevalo al PC del negocio.
+
+2) Doble clic en ParkPro-Setup.exe -> "Si" a permisos de administrador
+   -> Siguiente -> Instalar. (Se instala en C:\ParkPro)
+
+3) Al terminar deja marcada la casilla "Iniciar ParkPro ahora".
+   La primera vez tarda ~20 segundos (configura la base de datos).
+   Se abre solo el navegador en https://localhost:3001
+
+4) En el escritorio quedan 3 iconos:
+      - Iniciar ParkPro   (prende el sistema)
+      - Detener ParkPro   (lo apaga)
+      - Abrir ParkPro     (abre el navegador)
+
+   El cliente solo usa estos iconos. Sin comandos, sin consola.
+
+------------------------------------------------------------
+ PARTE 5 - ACCESO DESDE CELULARES Y OTROS PC (red del router)
+------------------------------------------------------------
+
+1) Averigua la IP del PC servidor: cuando ParkPro inicia, la consola
+   (o el icono Abrir) usa https://localhost:3001 en el propio PC.
+   Para los demas equipos se usa la IP de red, por ejemplo:
+        https://192.168.1.50:3001
+   (esa IP la imprime el servidor al arrancar como "En la red").
+
+2) IMPORTANTE - IP fija: para que la direccion no cambie, en el router
+   reserva la IP del PC servidor por su MAC (DHCP reservation), o
+   ponle IP estatica a ese PC. Asi siempre sera la misma direccion.
+
+3) En cada celular/PC, abre el navegador y entra a:
+        https://LA-IP-DEL-SERVIDOR:3001
+
+4) Saldra una advertencia de "sitio no seguro" (es por el certificado
+   propio, es normal en red local). Toca "Avanzado" -> "Continuar".
+   Esto se acepta UNA vez por dispositivo.
+
+5) La camara para escanear QR funciona porque servimos por HTTPS.
+
+------------------------------------------------------------
+ PARTE 6 - NOTAS
+------------------------------------------------------------
+
+- Sin internet: parqueo, lavados, mensualidades, reportes y la base de
+  datos funcionan igual. Solo WhatsApp queda en pausa hasta que vuelva
+  internet (no afecta lo demas).
+
+- Vincular WhatsApp: entra como admin -> menu WhatsApp -> Vincular, y
+  escanea el QR. La sesion queda guardada en el PC del negocio.
+
+- Respaldo de datos: toda la base esta en  C:\ParkPro\mysql\data
+  Copiala periodicamente a una USB para tener respaldo.
+
+- Usuario admin por defecto:  admin@parkpro.com  /  Admin123!
+  (cambialo desde el sistema despues de instalar).
+
+- Puerto: 3001. Si lo cambias, ajusta tambien el firewall y los scripts.
+============================================================
