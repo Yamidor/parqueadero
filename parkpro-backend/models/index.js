@@ -9,6 +9,8 @@ const Mensualidad = require('./mensualidad');
 const Gasto = require('./gasto');
 const Nomina = require('./nomina');
 const Configuracion = require('./configuracion');
+const WhatsappConfig = require('./WhatsappConfig');
+const NotificacionEnviada = require('./NotificacionEnviada');
 
 // ── Associations ──
 
@@ -42,6 +44,9 @@ Gasto.belongsTo(Usuario, { foreignKey: 'adminId', as: 'admin' });
 Nomina.belongsTo(Usuario, { foreignKey: 'trabajadorId', as: 'trabajador' });
 Nomina.belongsTo(Usuario, { foreignKey: 'adminId', as: 'admin' });
 
+// Notificaciones de WhatsApp por mensualidad
+NotificacionEnviada.belongsTo(Mensualidad, { foreignKey: 'mensualidadId', as: 'mensualidad' });
+
 module.exports = {
   sequelize,
   Usuario,
@@ -54,4 +59,6 @@ module.exports = {
   Gasto,
   Nomina,
   Configuracion,
+  WhatsappConfig,
+  NotificacionEnviada,
 };

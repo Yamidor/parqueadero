@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import api from '../services/api';
 import { formatCurrency } from '../utils/formatCurrency';
 
@@ -23,6 +25,97 @@ export default function Reportes() {
   };
 
   useEffect(() => { cargar(); }, []);
+
+  const exportarPDF = async () => {
+    if (!reporte) return;
+    let config = { nombreNegocio: 'ParkPro', nit: '', direccion: '', telefono: '' };
+    try {
+      const cfgRes = await api.get('/configuracion');
+      config = { ...config, ...cfgRes.data };
+    } catch (e) { /* fallback al default */ }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Encabezado
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(config.nombreNegocio || 'ParkPro', pageWidth / 2, 16, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const subHeader = [
+      config.nit ? `NIT: ${config.nit}` : null,
+      config.direccion || null,
+      config.telefono ? `Tel: ${config.telefono}` : null,
+    ].filter(Boolean).join('   |   ');
+    if (subHeader) doc.text(subHeader, pageWidth / 2, 22, { align: 'center' });
+
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Reporte de Ingresos', pageWidth / 2, 32, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Del ${fechaInicio} al ${fechaFin}`, pageWidth / 2, 38, { align: 'center' });
+
+    // Tabla resumen
+    autoTable(doc, {
+      startY: 46,
+      head: [['Concepto', 'Valor']],
+      body: [
+        ['Total Ingresos', formatCurrency(reporte.totalIngresos)],
+        ['Vehículos Atendidos', String(reporte.vehiculosAtendidos)],
+        ['Total Gastos', formatCurrency(reporte.totalGastos)],
+        ['Total Nómina', formatCurrency(reporte.totalNomina)],
+        ['Balance', formatCurrency(reporte.balance)],
+      ],
+      headStyles: { fillColor: [255, 107, 0] },
+      styles: { fontSize: 10 },
+    });
+
+    // Ingresos por tipo
+    if (reporte.ingresosPorTipo?.length > 0) {
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 8,
+        head: [['Tipo de servicio', 'Operaciones', 'Total']],
+        body: reporte.ingresosPorTipo.map((t) => [
+          tipoLabels[t.tipoServicio] || t.tipoServicio,
+          String(t.cantidad),
+          formatCurrency(t.total),
+        ]),
+        headStyles: { fillColor: [255, 107, 0] },
+        styles: { fontSize: 10 },
+      });
+    }
+
+    // Ingresos diarios
+    if (reporte.ingresosDiarios?.length > 0) {
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 8,
+        head: [['Fecha', 'Ingresos']],
+        body: reporte.ingresosDiarios.map((d) => [
+          d.fecha,
+          formatCurrency(parseFloat(d.total || 0)),
+        ]),
+        headStyles: { fillColor: [255, 107, 0] },
+        styles: { fontSize: 10 },
+      });
+    }
+
+    // Pie con paginación
+    const pageCount = doc.internal.getNumberOfPages();
+    const generado = new Date().toLocaleString('es-CO');
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(120);
+      doc.text(`Generado: ${generado}`, 14, doc.internal.pageSize.getHeight() - 8);
+      doc.text(`Página ${i} de ${pageCount}`, pageWidth - 14, doc.internal.pageSize.getHeight() - 8, { align: 'right' });
+    }
+
+    doc.save(`reporte_${fechaInicio}_${fechaFin}.pdf`);
+  };
 
   const chartData = reporte?.ingresosDiarios?.map((d) => ({
     fecha: d.fecha?.split('-').slice(1).join('/') || d.fecha,
@@ -50,6 +143,9 @@ export default function Reportes() {
         </div>
         <button className="btn btn-primary" onClick={cargar} disabled={loading}>
           {loading ? '...' : '🔍 Generar Reporte'}
+        </button>
+        <button className="btn btn-secondary" onClick={exportarPDF} disabled={!reporte || loading}>
+          📄 Exportar PDF
         </button>
       </div>
 

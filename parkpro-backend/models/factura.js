@@ -71,6 +71,10 @@ const Factura = sequelize.define('Factura', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  subtipoLavado: {
+    type: DataTypes.ENUM('normal', 'full'),
+    allowNull: true,
+  },
 }, {
   tableName: 'facturas',
 });

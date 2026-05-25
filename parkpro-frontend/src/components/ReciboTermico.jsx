@@ -173,7 +173,9 @@ const ReciboTermico = forwardRef(function ReciboTermico(
         <>
           <div className="tr-row">
             <span>Servicio:</span>
-            <span>Lavado {vehiculo?.tipo === 'moto' ? 'Moto' : 'Carro'}</span>
+            <span>
+              Lavado {factura.subtipoLavado === 'full' ? 'Full' : 'Normal'} {vehiculo?.tipo === 'moto' ? 'Moto' : 'Carro'}
+            </span>
           </div>
           <div className="tr-row">
             <span>Fecha:</span>

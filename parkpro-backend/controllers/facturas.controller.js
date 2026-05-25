@@ -1,7 +1,14 @@
-const { Factura, Vehiculo, Cliente, Puesto, Tarifa, Mensualidad } = require('../models');
+const { Factura, Vehiculo, Cliente, Puesto, Tarifa, Mensualidad, Configuracion } = require('../models');
 const { generarCodigoFactura } = require('../utils/codigoFactura');
 const { generateQR } = require('../utils/qrGenerator');
+const { calcularValorParqueo } = require('../utils/calculoTarifa');
+const whatsappService = require('../services/whatsapp.service');
 const { Op } = require('sequelize');
+
+async function getModoCobro() {
+  const config = await Configuracion.findOne();
+  return config?.modoCobro || 'hora_completa';
+}
 
 const facturasController = {
   // POST /api/facturas/entrada — Register vehicle entry (hourly parking)
@@ -80,6 +87,21 @@ const facturasController = {
         ],
       });
 
+      // Mensaje de bienvenida por WhatsApp (no bloqueante)
+      if (whatsappService.isReady() && vehiculo.cliente?.telefono) {
+        const config = await Configuracion.findOne();
+        const nombreNegocio = config?.nombreNegocio || 'ParkPro';
+        const horaTxt = new Date(factura.horaIngreso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        const mensaje =
+          `🅿️ *${nombreNegocio}*\n` +
+          `Hola ${vehiculo.cliente.nombre}, gracias por elegirnos.\n` +
+          `Tu vehículo *${vehiculo.placa}* ingresó a las ${horaTxt}.\n\n` +
+          `Para consultar tu cuenta actual envía tu placa a este chat.`;
+        whatsappService.sendMessage(vehiculo.cliente.telefono, mensaje).catch((e) =>
+          console.error('Error enviando bienvenida WhatsApp:', e.message)
+        );
+      }
+
       res.status(201).json({
         factura: facturaCompleta,
         tarifa: tarifa ? parseFloat(tarifa.valor) : 0,
@@ -116,13 +138,13 @@ const facturasController = {
       const ingreso = new Date(factura.horaIngreso);
       const diffMs = ahora - ingreso;
       const diffHoras = diffMs / (1000 * 60 * 60);
-      const horasRedondeadas = Math.ceil(diffHoras); // Round up to full hour
 
-      // Get rate
+      // Get rate + billing mode
       const tipoTarifa = factura.vehiculo.tipo === 'moto' ? 'hora_moto' : 'hora_carro';
       const tarifa = await Tarifa.findOne({ where: { tipo: tipoTarifa } });
       const valorHora = tarifa ? parseFloat(tarifa.valor) : 0;
-      const valorTotal = horasRedondeadas * valorHora;
+      const modoCobro = await getModoCobro();
+      const { horasACobrar: horasRedondeadas, valorTotal } = calcularValorParqueo(diffMs, valorHora, modoCobro);
 
       // Update invoice
       factura.horaSalida = ahora;
@@ -177,8 +199,12 @@ const facturasController = {
   // POST /api/facturas/lavado — Register wash service
   async registrarLavado(req, res) {
     try {
-      const { vehiculoId, clienteId } = req.body;
+      const { vehiculoId, clienteId, subtipo } = req.body;
       const cajeroId = req.user.id;
+
+      if (!subtipo || !['normal', 'full'].includes(subtipo)) {
+        return res.status(400).json({ error: 'Debe indicar el tipo de lavado (normal o full)' });
+      }
 
       const vehiculo = await Vehiculo.findByPk(vehiculoId, {
         include: [{ model: Cliente, as: 'cliente' }],
@@ -186,7 +212,7 @@ const facturasController = {
       if (!vehiculo) return res.status(404).json({ error: 'Vehículo no encontrado' });
 
       // Get wash rate
-      const tipoTarifa = vehiculo.tipo === 'moto' ? 'lavado_moto' : 'lavado_carro';
+      const tipoTarifa = `lavado_${vehiculo.tipo}_${subtipo}`;
       const tarifa = await Tarifa.findOne({ where: { tipo: tipoTarifa } });
       const valorTotal = tarifa ? parseFloat(tarifa.valor) : 0;
 
@@ -201,6 +227,7 @@ const facturasController = {
         clienteId: clienteId || vehiculo.clienteId,
         cajeroId,
         tipoServicio: 'lavado',
+        subtipoLavado: subtipo,
         estado: 'pagado',
         horaIngreso: new Date(),
         horaSalida: new Date(),
@@ -270,18 +297,20 @@ const facturasController = {
         const ingreso = new Date(factura.horaIngreso);
         const diffMs = ahora - ingreso;
         const diffHoras = diffMs / (1000 * 60 * 60);
-        const horasRedondeadas = Math.ceil(diffHoras);
 
         const tipoTarifa = factura.vehiculo.tipo === 'moto' ? 'hora_moto' : 'hora_carro';
         const tarifa = await Tarifa.findOne({ where: { tipo: tipoTarifa } });
         const valorHora = tarifa ? parseFloat(tarifa.valor) : 0;
+        const modoCobro = await getModoCobro();
+        const { horasACobrar, valorTotal } = calcularValorParqueo(diffMs, valorHora, modoCobro);
 
         return res.json({
           factura,
           horasTranscurridas: parseFloat(diffHoras.toFixed(2)),
-          horasACobrar: horasRedondeadas,
+          horasACobrar,
           valorHora,
-          valorEstimado: horasRedondeadas * valorHora,
+          valorEstimado: valorTotal,
+          modoCobro,
         });
       }
 

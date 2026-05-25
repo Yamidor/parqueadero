@@ -31,6 +31,7 @@ app.use('/api/nomina', require('./routes/nomina'));
 app.use('/api/reportes', require('./routes/reportes'));
 app.use('/api/configuracion', require('./routes/configuracion'));
 app.use('/api/usuarios', require('./routes/usuarios'));
+app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
@@ -42,6 +43,62 @@ io.on('connection', (socket) => {
     console.log(`❌ Cliente desconectado: ${socket.id}`);
   });
 });
+
+// Notify mensualidades that will expire soon via WhatsApp (3 and 2 days before)
+async function checkMensualidadesPorVencer() {
+  try {
+    const { Mensualidad, Cliente, Vehiculo, NotificacionEnviada, Configuracion } = require('./models');
+    const whatsappService = require('./services/whatsapp.service');
+    if (!whatsappService.isReady()) return;
+
+    const config = await Configuracion.findOne();
+    const nombreNegocio = config?.nombreNegocio || 'el parqueadero';
+
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const targets = [
+      { dias: 3, tipo: 'vence_3d' },
+      { dias: 2, tipo: 'vence_2d' },
+    ];
+
+    for (const t of targets) {
+      const fechaObjetivo = new Date(hoy);
+      fechaObjetivo.setDate(fechaObjetivo.getDate() + t.dias);
+      const fechaStr = fechaObjetivo.toISOString().split('T')[0];
+
+      const mensualidades = await Mensualidad.findAll({
+        where: { estado: 'activo', fechaFin: fechaStr },
+        include: [
+          { model: Cliente, as: 'cliente' },
+          { model: Vehiculo, as: 'vehiculo' },
+        ],
+      });
+
+      for (const m of mensualidades) {
+        const yaEnviado = await NotificacionEnviada.findOne({
+          where: { mensualidadId: m.id, tipo: t.tipo },
+        });
+        if (yaEnviado) continue;
+
+        const tel = m.cliente?.telefono;
+        if (!tel) continue;
+
+        const msg =
+          `🅿️ *${nombreNegocio}*\n` +
+          `Hola ${m.cliente.nombre}, te recordamos que tu mensualidad ` +
+          `para la placa *${m.vehiculo?.placa}* vence en *${t.dias} día${t.dias === 1 ? '' : 's'}* ` +
+          `(${m.fechaFin}).\n\nRenueva con tiempo para no perder el cupo. ¡Gracias!`;
+
+        const ok = await whatsappService.sendMessage(tel, msg);
+        if (ok) {
+          await NotificacionEnviada.create({ mensualidadId: m.id, tipo: t.tipo });
+          console.log(`💬 Aviso ${t.tipo} enviado a ${m.cliente.nombre} (${tel})`);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error notificando mensualidades por vencer:', e.message);
+  }
+}
 
 // Check expired mensualidades every hour
 async function checkMensualidadesVencidas() {
@@ -89,9 +146,18 @@ async function init() {
     // 2. Import models (triggers associations)
     const { Usuario, Tarifa, Configuracion } = require('./models');
 
-    // 3. Sync models
-    await sequelize.sync({ alter: true });
-    console.log('✅ Modelos sincronizados');
+    // 3. Sync models — primero intenta con alter para aplicar cambios de columnas;
+    //    si falla por una restricción ya inexistente (típico al iterar el schema en MySQL)
+    //    cae a un sync simple que al menos crea tablas nuevas.
+    try {
+      await sequelize.sync({ alter: true });
+      console.log('✅ Modelos sincronizados (alter)');
+    } catch (e) {
+      console.warn('⚠️  sync({ alter: true }) falló:', e.message);
+      console.warn('   Reintentando con sync() simple (crea tablas nuevas pero no altera existentes)...');
+      await sequelize.sync();
+      console.log('✅ Modelos sincronizados (basic)');
+    }
 
     // 4. Seed admin user
     const adminExists = await Usuario.findOne({ where: { email: DEFAULT_ADMIN.email } });
@@ -117,6 +183,14 @@ async function init() {
     // 7. Start cron for expired mensualidades
     setInterval(checkMensualidadesVencidas, 60 * 60 * 1000); // Every hour
     checkMensualidadesVencidas(); // Run once on startup
+
+    // 7b. Start cron for upcoming-expiry WhatsApp notices (every hour)
+    setInterval(checkMensualidadesPorVencer, 60 * 60 * 1000);
+
+    // 7c. Hook WhatsApp service to Socket.IO and resume saved session
+    const whatsappService = require('./services/whatsapp.service');
+    whatsappService.setIo(io);
+    whatsappService.reanudarSiEstabaVinculado();
 
     // 8. Start server
     server.listen(PORT, () => {

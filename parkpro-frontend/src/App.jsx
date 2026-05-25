@@ -15,6 +15,7 @@ import Reportes from './pages/Reportes';
 import Gastos from './pages/Gastos';
 import Nomina from './pages/Nomina';
 import Configuracion from './pages/Configuracion';
+import Whatsapp from './pages/Whatsapp';
 
 // Layout with sidebar for authenticated pages
 function AdminLayout({ children }) {
@@ -92,6 +93,11 @@ export default function App() {
           <Route path="/admin/configuracion" element={
             <PrivateRoute role="admin">
               <AdminLayout><Configuracion /></AdminLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/whatsapp" element={
+            <PrivateRoute role="admin">
+              <AdminLayout><Whatsapp /></AdminLayout>
             </PrivateRoute>
           } />
 

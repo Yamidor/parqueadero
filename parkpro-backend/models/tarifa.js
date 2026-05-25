@@ -14,7 +14,11 @@ const Tarifa = sequelize.define('Tarifa', {
       'mensualidad_moto',
       'mensualidad_carro',
       'lavado_moto',
-      'lavado_carro'
+      'lavado_carro',
+      'lavado_moto_normal',
+      'lavado_moto_full',
+      'lavado_carro_normal',
+      'lavado_carro_full'
     ),
     allowNull: false,
     unique: true,

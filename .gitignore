@@ -34,3 +34,8 @@ dist-ssr/
 *.njsproj
 *.sln
 *.sw?
+
+# WhatsApp session
+**/.wwebjs_auth/
+**/.wwebjs_cache/
+**/.baileys_auth/

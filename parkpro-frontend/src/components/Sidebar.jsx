@@ -11,6 +11,7 @@ const adminLinks = [
   { to: '/admin/reportes', label: 'Reportes', icon: '📈' },
   { to: '/admin/gastos', label: 'Gastos', icon: '💸' },
   { to: '/admin/nomina', label: 'Nómina', icon: '📋' },
+  { to: '/admin/whatsapp', label: 'WhatsApp', icon: '💬' },
   { to: '/admin/configuracion', label: 'Configuración', icon: '⚙️' },
 ];
 

@@ -13,8 +13,10 @@ module.exports = {
     { tipo: 'hora_carro', valor: 3000 },
     { tipo: 'mensualidad_moto', valor: 60000 },
     { tipo: 'mensualidad_carro', valor: 80000 },
-    { tipo: 'lavado_moto', valor: 8000 },
-    { tipo: 'lavado_carro', valor: 15000 },
+    { tipo: 'lavado_moto_normal', valor: 8000 },
+    { tipo: 'lavado_moto_full', valor: 14000 },
+    { tipo: 'lavado_carro_normal', valor: 15000 },
+    { tipo: 'lavado_carro_full', valor: 25000 },
   ],
   DEFAULT_CONFIG: {
     nombreNegocio: 'ParkPro Parqueadero',

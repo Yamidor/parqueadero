@@ -23,6 +23,11 @@ const Configuracion = sequelize.define('Configuracion', {
     type: DataTypes.STRING(30),
     allowNull: true,
   },
+  modoCobro: {
+    type: DataTypes.ENUM('hora_completa', 'fraccion'),
+    allowNull: false,
+    defaultValue: 'hora_completa',
+  },
 }, {
   tableName: 'configuracion',
 });
