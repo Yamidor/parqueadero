@@ -361,18 +361,27 @@ story.append(P(
 story.append(P("3.4 Modulos principales", "H2"))
 story.append(tabla([
     ["Modulo", "Para que sirve"],
-    ["Dashboard", "Resumen de ingresos del dia, semana y mes, y estado de puestos en tiempo real."],
-    ["Puestos", "Crear y administrar los puestos del parqueadero (moto/carro)."],
+    ["Dashboard", "Resumen de ingresos del dia, semana y mes; URL para conectar otros dispositivos; estado de puestos en tiempo real."],
+    ["Puestos", "Crear y administrar los puestos (moto, carro o mixto)."],
     ["Clientes", "Registrar clientes con su telefono (necesario para WhatsApp)."],
-    ["Registrar entrada", "Registrar el ingreso de un vehiculo y asignarle un puesto."],
+    ["Registrar entrada", "Registrar el ingreso de un vehiculo y asignarle un puesto del mismo tipo."],
     ["Registrar salida", "Cobrar el parqueo segun el tiempo y el modo de cobro configurado."],
     ["Lavados", "Registrar un lavado Normal o Full para moto o carro."],
     ["Mensualidades", "Crear y renovar mensualidades; avisos automaticos por WhatsApp."],
     ["Tarifas", "Definir precios y el modo de cobro (hora completa o por fraccion)."],
+    ["Facturas", "Ver todas las facturas con filtros (fecha, tipo, vehiculo, estado), reimprimir y cancelar."],
     ["Reportes", "Ver ingresos por fechas y exportarlos a PDF."],
     ["Gastos / Nomina", "Registrar gastos y pagos para el balance del negocio."],
     ["WhatsApp", "Vincular el numero del negocio y activar los mensajes automaticos."],
+    ["Configuracion", "Datos del negocio, hora del aviso de mensualidad y modo de cobro."],
 ], [38*mm, 132*mm]))
+
+story.append(Spacer(1, 6))
+story.append(P("Paginacion en las listas:", "Body"))
+story.append(P(
+    "Las tablas grandes (Facturas, Clientes, Gastos, Nomina y Trabajadores) tienen paginacion "
+    "con selector de filas por pagina (<b>5, 10, 30, 50, 100</b>) y botones para navegar primera, "
+    "anterior, siguiente y ultima pagina.", "Body"))
 
 story.append(PageBreak())
 
@@ -389,7 +398,24 @@ story.append(P(
     "Al registrar un lavado se elige el tipo <b>Normal</b> o <b>Full</b>; cada uno tiene su precio "
     "(configurable en Tarifas) para moto y para carro. El tipo aparece en el recibo.", "Body"))
 
-story.append(P("3.7 Reportes en PDF", "H2"))
+story.append(P("3.7 Facturas (ver todas, filtrar y cancelar)", "H2"))
+story.append(P(
+    "En el modulo <b>Facturas</b> el admin ve <b>todas</b> las operaciones (parqueo, lavado y "
+    "mensualidad), incluyendo las pendientes y canceladas. Filtros disponibles:", "Body"))
+story.append(vinetas([
+    "<b>Rango de fechas</b> (desde / hasta)",
+    "<b>Servicio</b>: parqueo, lavado o mensualidad",
+    "<b>Vehiculo</b>: moto o carro",
+    "<b>Estado</b>: pagada, pendiente o cancelada",
+]))
+story.append(P("Acciones disponibles por factura:", "Body"))
+story.append(vinetas([
+    "👁 <b>Ver detalle</b> con todos los datos.",
+    "🖨 <b>Reimprimir el recibo</b> termico.",
+    "❌ <b>Cancelar</b> una factura por error (no contara en ingresos; si era un parqueo pendiente, libera el puesto).",
+]))
+
+story.append(P("3.8 Reportes en PDF", "H2"))
 story.append(pasos([
     "Entrar al modulo <b>Reportes</b>.",
     "Elegir la fecha de inicio y la fecha de fin.",
@@ -397,7 +423,7 @@ story.append(pasos([
     "Pulsar <b>Exportar PDF</b> para descargar el reporte con resumen, ingresos por tipo e ingresos diarios.",
 ]))
 
-story.append(P("3.8 WhatsApp", "H2"))
+story.append(P("3.9 WhatsApp", "H2"))
 story.append(P("<b>Vincular el numero del negocio:</b>", "Body"))
 story.append(pasos([
     "Entrar como administrador y abrir el modulo <b>WhatsApp</b>.",
@@ -408,20 +434,22 @@ story.append(pasos([
 story.append(P("<b>Funciones automaticas:</b>", "Body"))
 story.append(vinetas([
     "<b>Bienvenida:</b> al registrar la entrada de un vehiculo, el cliente recibe un saludo.",
-    "<b>Consulta por placa:</b> el cliente envia su placa por WhatsApp y recibe el tiempo y el valor. Solo responde si el numero coincide con el telefono registrado del dueno.",
-    "<b>Aviso de mensualidad:</b> notifica 3 y 2 dias antes del vencimiento.",
+    "<b>Confirmacion de mensualidad:</b> al crear o renovar una mensualidad, el cliente recibe un mensaje con placa, puesto, fechas y valor.",
+    "<b>Consulta por placa:</b> el cliente envia su placa por WhatsApp y recibe tiempo y valor (si tiene parqueo activo) o dias restantes (si tiene mensualidad). Solo responde al telefono registrado del dueno.",
+    "<b>Aviso 1 dia antes:</b> a la hora exacta que el admin configure (formato HH:MM, ej. 09:00 o 22:30) avisa: 'tu mensualidad vence manana, plazo hasta las 6 PM'.",
+    "<b>Liberacion automatica:</b> a las 6:00 PM del dia de vencimiento, si no renovo, el puesto queda libre y el cliente recibe el aviso.",
 ]))
 story.append(Paragraph(
     "<b>Sin internet:</b> WhatsApp queda en pausa y se reconecta solo cuando vuelve la conexion. "
     "El resto del sistema funciona normal.", styles["Nota"]))
 
-story.append(P("3.9 Respaldo de datos (importante)", "H2"))
+story.append(P("3.10 Respaldo de datos (importante)", "H2"))
 story.append(P(
     "Toda la informacion vive en la carpeta <b>C:\\ParkPro\\mysql\\data</b>. Para tener respaldo, "
     "con el sistema <b>detenido</b> copiar esa carpeta a una USB periodicamente. Para restaurar, "
     "reemplazar esa carpeta con la copia (tambien con el sistema detenido).", "Body"))
 
-story.append(P("3.10 Solucion de problemas", "H2"))
+story.append(P("3.11 Solucion de problemas", "H2"))
 story.append(tabla([
     ["Situacion", "Que hacer"],
     ["No abre en el celular", "Verificar que el PC servidor este encendido y con ParkPro iniciado, y que el celular este en la misma red WiFi."],
