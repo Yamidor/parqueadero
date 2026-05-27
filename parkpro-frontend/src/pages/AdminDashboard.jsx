@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { formatCurrency } from '../utils/formatCurrency';
+import { formatCurrency, fechaLocal } from '../utils/formatCurrency';
 import PanelPuestos from '../components/PanelPuestos';
 
 function MetricCard({ icon, label, value, color }) {
@@ -20,16 +20,16 @@ export default function AdminDashboard() {
   const [copiado, setCopiado] = useState('');
 
   useEffect(() => {
-    const hoy = new Date().toISOString().split('T')[0];
-    const inicioSemana = new Date();
-    inicioSemana.setDate(inicioSemana.getDate() - 7);
-    const inicioMes = new Date();
-    inicioMes.setDate(1);
+    // Usar zona horaria LOCAL (no UTC). De noche en Colombia (UTC-5)
+    // toISOString() daba la fecha del dia siguiente y nada cuadraba.
+    const hoy = fechaLocal();
+    const semanaIni = new Date(); semanaIni.setDate(semanaIni.getDate() - 7);
+    const mesIni = new Date(); mesIni.setDate(1);
 
     Promise.all([
       api.get(`/reportes?fechaInicio=${hoy}&fechaFin=${hoy}`),
-      api.get(`/reportes?fechaInicio=${inicioSemana.toISOString().split('T')[0]}&fechaFin=${hoy}`),
-      api.get(`/reportes?fechaInicio=${inicioMes.toISOString().split('T')[0]}&fechaFin=${hoy}`),
+      api.get(`/reportes?fechaInicio=${fechaLocal(semanaIni)}&fechaFin=${hoy}`),
+      api.get(`/reportes?fechaInicio=${fechaLocal(mesIni)}&fechaFin=${hoy}`),
     ]).then(([diaRes, semRes, mesRes]) => {
       setStats({
         dia: diaRes.data,

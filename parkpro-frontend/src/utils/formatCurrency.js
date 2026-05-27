@@ -29,3 +29,15 @@ export function formatDate(date) {
     day: '2-digit', month: '2-digit', year: 'numeric',
   }).format(new Date(date));
 }
+
+/**
+ * Devuelve la fecha LOCAL en formato YYYY-MM-DD.
+ * IMPORTANTE: NO usar `new Date().toISOString().split('T')[0]` porque ese
+ * convierte a UTC y de noche en Colombia (UTC-5) da el dia siguiente.
+ */
+export function fechaLocal(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}

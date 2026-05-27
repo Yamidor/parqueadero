@@ -3,14 +3,14 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import api from '../services/api';
-import { formatCurrency } from '../utils/formatCurrency';
+import { formatCurrency, fechaLocal } from '../utils/formatCurrency';
 
 const tipoLabels = { parqueo: 'Parqueo', lavado: 'Lavado', mensualidad: 'Mensualidad' };
 
 export default function Reportes() {
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = fechaLocal();
   const inicioMes = new Date(); inicioMes.setDate(1);
-  const [fechaInicio, setFechaInicio] = useState(inicioMes.toISOString().split('T')[0]);
+  const [fechaInicio, setFechaInicio] = useState(fechaLocal(inicioMes));
   const [fechaFin, setFechaFin] = useState(hoy);
   const [reporte, setReporte] = useState(null);
   const [loading, setLoading] = useState(false);

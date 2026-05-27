@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import api from '../services/api';
-import { formatCurrency, formatDateTime } from '../utils/formatCurrency';
+import { formatCurrency, formatDateTime, fechaLocal } from '../utils/formatCurrency';
 import ReciboTermico from '../components/ReciboTermico';
 import { usePaginacion } from '../components/Paginacion';
 
@@ -20,10 +20,10 @@ function tipoReciboParaImprimir(tipoServicio, estado) {
 }
 
 export default function Facturas() {
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = fechaLocal();
   const inicioMes = new Date(); inicioMes.setDate(1);
   const [filtros, setFiltros] = useState({
-    fechaInicio: inicioMes.toISOString().split('T')[0],
+    fechaInicio: fechaLocal(inicioMes),
     fechaFin: hoy,
     tipoServicio: '',
     tipoVehiculo: '',

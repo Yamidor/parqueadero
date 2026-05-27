@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { formatCurrency } from '../utils/formatCurrency';
+import { formatCurrency, fechaLocal } from '../utils/formatCurrency';
 import { usePaginacion } from '../components/Paginacion';
 
 export default function Nomina() {
@@ -8,7 +8,7 @@ export default function Nomina() {
   const [trabajadores, setTrabajadores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ trabajadorId: '', monto: '', periodo: 'diario', fecha: new Date().toISOString().split('T')[0], descripcion: '' });
+  const [form, setForm] = useState({ trabajadorId: '', monto: '', periodo: 'diario', fecha: fechaLocal(), descripcion: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const { datosPagina, Controles } = usePaginacion(nominas, 10);
@@ -31,7 +31,7 @@ export default function Nomina() {
     try {
       await api.post('/nomina', form);
       setShowModal(false);
-      setForm({ trabajadorId: '', monto: '', periodo: 'diario', fecha: new Date().toISOString().split('T')[0], descripcion: '' });
+      setForm({ trabajadorId: '', monto: '', periodo: 'diario', fecha: fechaLocal(), descripcion: '' });
       cargar();
     } catch (err) { setError(err.response?.data?.error || 'Error'); }
     finally { setSaving(false); }

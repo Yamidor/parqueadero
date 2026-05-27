@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { formatCurrency } from '../utils/formatCurrency';
+import { formatCurrency, fechaLocal } from '../utils/formatCurrency';
 import { usePaginacion } from '../components/Paginacion';
 
 export default function Gastos() {
   const [gastos, setGastos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ descripcion: '', monto: '', categoria: 'otros', fecha: new Date().toISOString().split('T')[0] });
+  const [form, setForm] = useState({ descripcion: '', monto: '', categoria: 'otros', fecha: fechaLocal() });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const { datosPagina, Controles } = usePaginacion(gastos, 10);
@@ -27,7 +27,7 @@ export default function Gastos() {
     try {
       await api.post('/gastos', form);
       setShowModal(false);
-      setForm({ descripcion: '', monto: '', categoria: 'otros', fecha: new Date().toISOString().split('T')[0] });
+      setForm({ descripcion: '', monto: '', categoria: 'otros', fecha: fechaLocal() });
       cargar();
     } catch (err) { setError(err.response?.data?.error || 'Error'); }
     finally { setSaving(false); }
