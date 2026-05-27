@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { usePaginacion } from '../components/Paginacion';
 
 export default function Clientes() {
   const [clientes, setClientes] = useState([]);
@@ -11,6 +12,8 @@ export default function Clientes() {
   const [form, setForm] = useState({ nombre: '', apellido: '', telefono: '', email: '', documento: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const { datosPagina, Controles } = usePaginacion(clientes, 10);
 
   const cargar = async (q = '') => {
     setLoading(true);
@@ -75,7 +78,7 @@ export default function Clientes() {
                 <tr><th>Nombre</th><th>Documento</th><th>Teléfono</th><th>Vehículos</th><th>Acciones</th></tr>
               </thead>
               <tbody>
-                {clientes.map((c) => (
+                {datosPagina.map((c) => (
                   <tr key={c.id}>
                     <td>{c.nombre} {c.apellido}</td>
                     <td className="mono">{c.documento || '-'}</td>
@@ -93,6 +96,7 @@ export default function Clientes() {
               </tbody>
             </table>
           </div>
+          <Controles />
         </div>
       )}
 

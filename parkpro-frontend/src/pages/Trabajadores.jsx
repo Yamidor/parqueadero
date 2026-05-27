@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { usePaginacion } from '../components/Paginacion';
 
 export default function Trabajadores() {
   const [usuarios, setUsuarios] = useState([]);
@@ -9,6 +10,7 @@ export default function Trabajadores() {
   const [form, setForm] = useState({ nombre: '', email: '', password: '', rol: 'cajero' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const { datosPagina, Controles } = usePaginacion(usuarios, 10);
 
   const cargar = async () => {
     setLoading(true);
@@ -62,7 +64,7 @@ export default function Trabajadores() {
             <table>
               <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
               <tbody>
-                {usuarios.map((u) => (
+                {datosPagina.map((u) => (
                   <tr key={u.id}>
                     <td>{u.nombre}</td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{u.email}</td>
@@ -83,6 +85,7 @@ export default function Trabajadores() {
               </tbody>
             </table>
           </div>
+          <Controles />
         </div>
       )}
 

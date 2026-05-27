@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { formatCurrency } from '../utils/formatCurrency';
+import { usePaginacion } from '../components/Paginacion';
 
 export default function Gastos() {
   const [gastos, setGastos] = useState([]);
@@ -9,6 +10,7 @@ export default function Gastos() {
   const [form, setForm] = useState({ descripcion: '', monto: '', categoria: 'otros', fecha: new Date().toISOString().split('T')[0] });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const { datosPagina, Controles } = usePaginacion(gastos, 10);
 
   const cargar = async () => {
     setLoading(true);
@@ -55,7 +57,7 @@ export default function Gastos() {
             <table>
               <thead><tr><th>Descripción</th><th>Categoría</th><th>Fecha</th><th>Monto</th><th>Acciones</th></tr></thead>
               <tbody>
-                {gastos.map((g) => (
+                {datosPagina.map((g) => (
                   <tr key={g.id}>
                     <td>{g.descripcion}</td>
                     <td><span className="badge badge-pendiente">{g.categoria}</span></td>
@@ -68,6 +70,7 @@ export default function Gastos() {
               </tbody>
             </table>
           </div>
+          <Controles />
         </div>
       )}
 

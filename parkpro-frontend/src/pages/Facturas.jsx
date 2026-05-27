@@ -3,6 +3,7 @@ import { useReactToPrint } from 'react-to-print';
 import api from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/formatCurrency';
 import ReciboTermico from '../components/ReciboTermico';
+import { usePaginacion } from '../components/Paginacion';
 
 const TIPOS_LABEL = { parqueo: '🅿️ Parqueo', lavado: '🚿 Lavado', mensualidad: '📅 Mensualidad' };
 const ESTADO_COLOR = {
@@ -73,6 +74,8 @@ export default function Facturas() {
     if (f.estado === 'cancelado') acc.canceladas++;
     return acc;
   }, { ingresos: 0, pendientes: 0, canceladas: 0 });
+
+  const { datosPagina: facturasPagina, Controles } = usePaginacion(facturas, 10);
 
   return (
     <div className="page-content">
@@ -154,7 +157,7 @@ export default function Facturas() {
               {facturas.length === 0 && (
                 <tr><td colSpan={10} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>No hay facturas en este rango.</td></tr>
               )}
-              {facturas.map((f) => (
+              {facturasPagina.map((f) => (
                 <tr key={f.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td className="mono" style={{ padding: '10px 12px', color: 'var(--neon-orange)' }}>{f.codigo}</td>
                   <td style={{ padding: '10px 12px' }}>{formatDateTime(f.createdAt)}</td>
@@ -179,6 +182,7 @@ export default function Facturas() {
             </tbody>
           </table>
         </div>
+        <Controles />
       </div>
 
       {/* Modal de detalle */}

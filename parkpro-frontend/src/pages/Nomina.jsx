@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { formatCurrency } from '../utils/formatCurrency';
+import { usePaginacion } from '../components/Paginacion';
 
 export default function Nomina() {
   const [nominas, setNominas] = useState([]);
@@ -10,6 +11,7 @@ export default function Nomina() {
   const [form, setForm] = useState({ trabajadorId: '', monto: '', periodo: 'diario', fecha: new Date().toISOString().split('T')[0], descripcion: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const { datosPagina, Controles } = usePaginacion(nominas, 10);
 
   const cargar = async () => {
     setLoading(true);
@@ -59,7 +61,7 @@ export default function Nomina() {
             <table>
               <thead><tr><th>Trabajador</th><th>Periodo</th><th>Fecha</th><th>Descripción</th><th>Monto</th><th></th></tr></thead>
               <tbody>
-                {nominas.map((n) => (
+                {datosPagina.map((n) => (
                   <tr key={n.id}>
                     <td>{n.trabajador?.nombre}</td>
                     <td><span className={`badge ${n.periodo === 'diario' ? 'badge-pendiente' : 'badge-mensualidad'}`}>{n.periodo}</span></td>
@@ -73,6 +75,7 @@ export default function Nomina() {
               </tbody>
             </table>
           </div>
+          <Controles />
         </div>
       )}
 
