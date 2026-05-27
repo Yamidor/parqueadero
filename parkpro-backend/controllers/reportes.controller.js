@@ -8,10 +8,10 @@ const reportesController = {
       if (!fechaInicio || !fechaFin) {
         return res.status(400).json({ error: 'fechaInicio y fechaFin son requeridos' });
       }
-      const inicio = new Date(fechaInicio);
-      inicio.setHours(0, 0, 0, 0);
-      const fin = new Date(fechaFin);
-      fin.setHours(23, 59, 59, 999);
+      // ⚠️ ZONA HORARIA: usar formato ISO sin "Z" para que JS lo interprete como LOCAL,
+      // no como UTC. Asi "2026-05-26" se traduce al dia local correcto en Colombia (UTC-5).
+      const inicio = new Date(`${fechaInicio}T00:00:00`);
+      const fin = new Date(`${fechaFin}T23:59:59.999`);
 
       // Total income by service type
       const facturas = await Factura.findAll({

@@ -328,18 +328,15 @@ const facturasController = {
       const where = {};
       const includeVehiculo = { model: Vehiculo, as: 'vehiculo' };
 
-      // Filtro por rango de fechas (createdAt) o fecha única
+      // Filtro por rango de fechas (createdAt) o fecha unica.
+      // Usar formato ISO local (sin "Z") para evitar shift de zona horaria.
       if (fechaInicio || fechaFin) {
-        const ini = new Date(fechaInicio || fechaFin);
-        ini.setHours(0, 0, 0, 0);
-        const fin = new Date(fechaFin || fechaInicio);
-        fin.setHours(23, 59, 59, 999);
+        const ini = new Date(`${fechaInicio || fechaFin}T00:00:00`);
+        const fin = new Date(`${fechaFin || fechaInicio}T23:59:59.999`);
         where.createdAt = { [Op.between]: [ini, fin] };
       } else if (fecha) {
-        const inicio = new Date(fecha);
-        inicio.setHours(0, 0, 0, 0);
-        const fin = new Date(fecha);
-        fin.setHours(23, 59, 59, 999);
+        const inicio = new Date(`${fecha}T00:00:00`);
+        const fin = new Date(`${fecha}T23:59:59.999`);
         where.createdAt = { [Op.between]: [inicio, fin] };
       }
       if (estado) where.estado = estado;

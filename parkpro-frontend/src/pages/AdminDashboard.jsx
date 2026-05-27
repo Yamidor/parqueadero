@@ -102,7 +102,7 @@ export default function AdminDashboard() {
         <MetricCard icon="📅" label="Ingresos Hoy" value={formatCurrency(stats?.dia?.totalIngresos || 0)} color="var(--neon-yellow)" />
         <MetricCard icon="📈" label="Ingresos Semana" value={formatCurrency(stats?.semana?.totalIngresos || 0)} color="var(--neon-orange)" />
         <MetricCard icon="💰" label="Ingresos Mes" value={formatCurrency(stats?.mes?.totalIngresos || 0)} color="var(--free-color)" />
-        <MetricCard icon="🚗" label="Vehículos Hoy" value={stats?.dia?.totalMovimientos ?? stats?.dia?.vehiculosAtendidos ?? 0} />
+        <MetricCard icon="🚗" label="Vehículos Atendidos Hoy" value={stats?.dia?.vehiculosAtendidos || 0} />
         <MetricCard icon="💸" label="Gastos Mes" value={formatCurrency(stats?.mes?.totalGastos || 0)} color="var(--busy-color)" />
         <MetricCard icon="⚖️" label="Balance Mes" value={formatCurrency(stats?.mes?.balance || 0)}
           color={(stats?.mes?.balance || 0) >= 0 ? 'var(--free-color)' : 'var(--busy-color)'} />
