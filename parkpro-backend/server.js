@@ -93,7 +93,18 @@ io.on('connection', (socket) => {
   });
 });
 
-// Aviso 1 día antes del vencimiento, a la hora configurada por el admin.
+// Parsea "HH:MM" o un entero legacy a {hora, minuto}
+function parseHora(valor) {
+  if (typeof valor === 'string' && valor.includes(':')) {
+    const [h, m] = valor.split(':').map((x) => parseInt(x, 10));
+    return { hora: isNaN(h) ? 9 : h, minuto: isNaN(m) ? 0 : m };
+  }
+  const h = parseInt(valor, 10);
+  return { hora: isNaN(h) ? 9 : h, minuto: 0 };
+}
+
+// Aviso 1 día antes del vencimiento, a partir de la hora configurada.
+// Corre cada minuto; la tabla notificaciones_enviadas evita reenvios.
 async function checkAvisoMensualidad1Dia() {
   try {
     const { Mensualidad, Cliente, Vehiculo, NotificacionEnviada, Configuracion } = require('./models');
@@ -101,14 +112,22 @@ async function checkAvisoMensualidad1Dia() {
     if (!whatsappService.isReady()) return;
 
     const config = await Configuracion.findOne();
-    const horaAviso = (config?.horaAvisoMensualidad ?? 9);
-    if (new Date().getHours() !== horaAviso) return; // solo en la hora configurada
+    const { hora: hCfg, minuto: mCfg } = parseHora(config?.horaAvisoMensualidad);
+
+    // Si todavía no es la hora configurada hoy, esperar
+    const now = new Date();
+    const ahoraMin = now.getHours() * 60 + now.getMinutes();
+    const cfgMin = hCfg * 60 + mCfg;
+    if (ahoraMin < cfgMin) return;
 
     const nombreNegocio = config?.nombreNegocio || 'el parqueadero';
 
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const manana = new Date(hoy); manana.setDate(manana.getDate() + 1);
-    const fechaStr = manana.toISOString().split('T')[0];
+    const y = manana.getFullYear();
+    const m = String(manana.getMonth() + 1).padStart(2, '0');
+    const d = String(manana.getDate()).padStart(2, '0');
+    const fechaStr = `${y}-${m}-${d}`;
 
     const mensualidades = await Mensualidad.findAll({
       where: { estado: 'activo', fechaFin: fechaStr },
@@ -146,7 +165,8 @@ async function checkAvisoMensualidad1Dia() {
 // A las 18:00 (6 PM): libera puestos cuya mensualidad vence HOY y no fue renovada.
 async function cerrarMensualidadesAlas6PM() {
   try {
-    if (new Date().getHours() !== 18) return;
+    const now = new Date();
+    if (now.getHours() !== 18 || now.getMinutes() !== 0) return;
     const { Mensualidad, Puesto, Cliente, Vehiculo, Configuracion } = require('./models');
     const whatsappService = require('./services/whatsapp.service');
     const hoy = new Date().toISOString().split('T')[0];
@@ -276,13 +296,16 @@ async function init() {
       console.log('⚙️  Configuración del negocio creada');
     }
 
-    // 7. Crons (cada hora corre los 3; cada función decide si actúa según la hora actual)
+    // 7. Crons: el master corre cada MINUTO para soportar horas configurables
+    // con minutos exactos (ej. 22:43). Cada sub-funcion decide si actua.
     const correrTareasMensualidad = async () => {
-      await checkMensualidadesVencidas();          // safety: cualquier vencida que se nos haya pasado
-      await cerrarMensualidadesAlas6PM();          // a las 18:00: libera puestos
-      await checkAvisoMensualidad1Dia();           // a la hora configurada: avisa "vence mañana"
+      const now = new Date();
+      // Tareas horarias: solo al minuto 0 de cada hora
+      if (now.getMinutes() === 0) await checkMensualidadesVencidas();
+      await cerrarMensualidadesAlas6PM();    // se autorestringe a las 18:00 exactas
+      await checkAvisoMensualidad1Dia();     // se autorestringe a la hora configurada
     };
-    setInterval(correrTareasMensualidad, 60 * 60 * 1000); // cada hora
+    setInterval(correrTareasMensualidad, 60 * 1000); // cada minuto
     correrTareasMensualidad(); // una vez al arrancar
 
     // 7c. Hook WhatsApp service to Socket.IO and resume saved session

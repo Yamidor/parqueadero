@@ -62,17 +62,21 @@ export default function Configuracion() {
 
           <div className="form-group">
             <label>⏰ Hora del aviso de mensualidad (WhatsApp 1 día antes)</label>
-            <select
+            <input
               className="form-control"
-              value={config.horaAvisoMensualidad ?? 9}
-              onChange={(e) => setConfig({ ...config, horaAvisoMensualidad: parseInt(e.target.value, 10) })}
-            >
-              {Array.from({ length: 24 }, (_, h) => (
-                <option key={h} value={h}>{String(h).padStart(2, '0')}:00 {h < 12 ? 'AM' : 'PM'}</option>
-              ))}
-            </select>
+              type="time"
+              value={(() => {
+                // Soporta tanto formato HH:MM como entero legacy
+                const v = config.horaAvisoMensualidad;
+                if (typeof v === 'string' && v.includes(':')) return v;
+                const h = parseInt(v, 10);
+                return `${String(isNaN(h) ? 9 : h).padStart(2, '0')}:00`;
+              })()}
+              onChange={(e) => setConfig({ ...config, horaAvisoMensualidad: e.target.value })}
+              style={{ maxWidth: 180, fontFamily: 'var(--font-mono)', fontSize: '1.05rem' }}
+            />
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-              A esta hora se envía cada día el aviso "tu mensualidad vence mañana" a los clientes con vencimiento al día siguiente. A las 6:00 PM se libera automáticamente el puesto de los que vencieron sin renovar.
+              Hora exacta (HH:MM) en que se envía cada día el aviso "tu mensualidad vence mañana". A las 6:00 PM se libera automáticamente el puesto de los que vencieron sin renovar.
             </div>
           </div>
 

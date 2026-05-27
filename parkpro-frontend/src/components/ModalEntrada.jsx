@@ -49,9 +49,9 @@ export default function ModalEntrada({ onClose }) {
       const t = tRes.data.find((t) => t.tipo === tipoTarifa);
       setTarifa(t?.valor || 0);
 
-      // Load available spots
+      // Load available spots (solo del mismo tipo que el vehiculo, o mixtos)
       const pRes = await api.get('/puestos');
-      setPuestos(pRes.data.filter((p) => p.estado === 'libre'));
+      setPuestos(pRes.data.filter((p) => p.estado === 'libre' && (p.tipo === res.data.tipo || p.tipo === 'mixto')));
       setStep('datos');
     } catch (err) {
       if (err.response?.status === 404) {
@@ -73,7 +73,7 @@ export default function ModalEntrada({ onClose }) {
     const t = tRes.data.find((t) => t.tipo === tipoTarifa);
     setTarifa(t?.valor || 0);
     const pRes = await api.get('/puestos');
-    setPuestos(pRes.data.filter((p) => p.estado === 'libre'));
+    setPuestos(pRes.data.filter((p) => p.estado === 'libre' && (p.tipo === veh.tipo || p.tipo === 'mixto')));
     setStep('puesto');
   };
 
@@ -143,7 +143,7 @@ export default function ModalEntrada({ onClose }) {
               <button className="btn btn-secondary" onClick={() => setStep('placa')}>← Cambiar</button>
               <button className="btn btn-primary" onClick={async () => {
                 const pRes = await api.get('/puestos');
-                setPuestos(pRes.data.filter((p) => p.estado === 'libre'));
+                setPuestos(pRes.data.filter((p) => p.estado === 'libre' && (p.tipo === vehiculo.tipo || p.tipo === 'mixto')));
                 setStep('puesto');
               }}>Seleccionar Puesto →</button>
             </div>

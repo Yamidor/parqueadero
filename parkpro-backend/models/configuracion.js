@@ -29,10 +29,12 @@ const Configuracion = sequelize.define('Configuracion', {
     defaultValue: 'hora_completa',
   },
   horaAvisoMensualidad: {
-    // Hora del día (0-23) a la que se envía el aviso "vence mañana" por WhatsApp.
-    type: DataTypes.INTEGER,
+    // Hora del día en formato "HH:MM" a la que se envía el aviso "vence mañana"
+    // por WhatsApp. Ej: "09:00", "22:43". El cron corre cada minuto y verifica
+    // que la notificación de hoy no se haya enviado aún (uniqueness por mensualidad).
+    type: DataTypes.STRING(5),
     allowNull: false,
-    defaultValue: 9, // 9 AM
+    defaultValue: '09:00',
   },
 }, {
   tableName: 'configuracion',

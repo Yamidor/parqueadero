@@ -57,7 +57,8 @@ export default function ModalMensualidad({ onClose }) {
         const tRes = await api.get('/tarifas');
         setTarifa(tRes.data.find((t) => t.tipo === tipoTarifa)?.valor || 0);
         const pRes = await api.get('/puestos');
-        setPuestos(pRes.data.filter((p) => p.estado === 'libre'));
+        // Mostrar solo puestos libres del MISMO tipo que el vehiculo (o mixtos)
+        setPuestos(pRes.data.filter((p) => p.estado === 'libre' && (p.tipo === veh.tipo || p.tipo === 'mixto')));
         setStep('vencida');
       } else {
         // No subscription - register new
@@ -65,7 +66,8 @@ export default function ModalMensualidad({ onClose }) {
         const tRes = await api.get('/tarifas');
         setTarifa(tRes.data.find((t) => t.tipo === tipoTarifa)?.valor || 0);
         const pRes = await api.get('/puestos');
-        setPuestos(pRes.data.filter((p) => p.estado === 'libre'));
+        // Mostrar solo puestos libres del MISMO tipo que el vehiculo (o mixtos)
+        setPuestos(pRes.data.filter((p) => p.estado === 'libre' && (p.tipo === veh.tipo || p.tipo === 'mixto')));
         setStep('seleccionPuesto');
       }
     } catch (err) {
@@ -112,7 +114,7 @@ export default function ModalMensualidad({ onClose }) {
     const tRes = await api.get('/tarifas');
     setTarifa(tRes.data.find((t) => t.tipo === tipoTarifa)?.valor || 0);
     const pRes = await api.get('/puestos');
-    setPuestos(pRes.data.filter((p) => p.estado === 'libre'));
+    setPuestos(pRes.data.filter((p) => p.estado === 'libre' && (p.tipo === veh.tipo || p.tipo === 'mixto')));
     setStep('seleccionPuesto');
   };
 
@@ -219,7 +221,12 @@ export default function ModalMensualidad({ onClose }) {
           <div>
             {vehiculo && (
               <div className="alert alert-info" style={{ marginBottom: 12 }}>
-                🚗 {vehiculo.placa} — {vehiculo.cliente?.nombre} {vehiculo.cliente?.apellido}
+                {vehiculo.tipo === 'moto' ? '🏍️ Moto' : '🚗 Carro'} — <b>{vehiculo.placa}</b> — {vehiculo.cliente?.nombre} {vehiculo.cliente?.apellido}
+              </div>
+            )}
+            {puestos.length === 0 && (
+              <div className="alert alert-warning" style={{ marginBottom: 12 }}>
+                ⚠️ No hay puestos libres para {vehiculo?.tipo === 'moto' ? 'motos' : 'carros'}. Libera un puesto o crea uno nuevo.
               </div>
             )}
             <div style={{ background: 'rgba(255,107,0,0.08)', border: '1px solid rgba(255,107,0,0.3)', borderRadius: 'var(--radius-lg)', padding: 14, marginBottom: 14 }}>
