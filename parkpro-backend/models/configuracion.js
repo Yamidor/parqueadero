@@ -28,6 +28,12 @@ const Configuracion = sequelize.define('Configuracion', {
     allowNull: false,
     defaultValue: 'hora_completa',
   },
+  horaAvisoMensualidad: {
+    // Hora del día (0-23) a la que se envía el aviso "vence mañana" por WhatsApp.
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 9, // 9 AM
+  },
 }, {
   tableName: 'configuracion',
 });

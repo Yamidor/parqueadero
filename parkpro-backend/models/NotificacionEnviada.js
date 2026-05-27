@@ -13,7 +13,7 @@ const NotificacionEnviada = sequelize.define('NotificacionEnviada', {
     references: { model: 'mensualidades', key: 'id' },
   },
   tipo: {
-    type: DataTypes.ENUM('vence_3d', 'vence_2d'),
+    type: DataTypes.ENUM('vence_3d', 'vence_2d', 'aviso_1d'),
     allowNull: false,
   },
   fechaEnvio: {

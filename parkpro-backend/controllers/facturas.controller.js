@@ -321,13 +321,21 @@ const facturasController = {
     }
   },
 
-  // GET /api/facturas — List invoices
+  // GET /api/facturas — List invoices with filters
   async listar(req, res) {
     try {
-      const { fecha, estado, tipoServicio, cajeroId } = req.query;
-      let where = {};
+      const { fecha, fechaInicio, fechaFin, estado, tipoServicio, tipoVehiculo, cajeroId, limit } = req.query;
+      const where = {};
+      const includeVehiculo = { model: Vehiculo, as: 'vehiculo' };
 
-      if (fecha) {
+      // Filtro por rango de fechas (createdAt) o fecha única
+      if (fechaInicio || fechaFin) {
+        const ini = new Date(fechaInicio || fechaFin);
+        ini.setHours(0, 0, 0, 0);
+        const fin = new Date(fechaFin || fechaInicio);
+        fin.setHours(23, 59, 59, 999);
+        where.createdAt = { [Op.between]: [ini, fin] };
+      } else if (fecha) {
         const inicio = new Date(fecha);
         inicio.setHours(0, 0, 0, 0);
         const fin = new Date(fecha);
@@ -337,20 +345,63 @@ const facturasController = {
       if (estado) where.estado = estado;
       if (tipoServicio) where.tipoServicio = tipoServicio;
       if (cajeroId) where.cajeroId = cajeroId;
+      if (tipoVehiculo) includeVehiculo.where = { tipo: tipoVehiculo };
 
       const facturas = await Factura.findAll({
         where,
         include: [
-          { model: Vehiculo, as: 'vehiculo' },
+          includeVehiculo,
           { model: Puesto, as: 'puesto' },
           { model: Cliente, as: 'cliente' },
         ],
         order: [['createdAt', 'DESC']],
-        limit: 100,
+        limit: parseInt(limit, 10) || 500,
       });
       res.json(facturas);
     } catch (error) {
+      console.error('Error listando facturas:', error);
       res.status(500).json({ error: 'Error al listar facturas' });
+    }
+  },
+
+  // POST /api/facturas/:id/cancelar — anular factura por error
+  async cancelar(req, res) {
+    try {
+      const factura = await Factura.findByPk(req.params.id, {
+        include: [{ model: Puesto, as: 'puesto' }],
+      });
+      if (!factura) return res.status(404).json({ error: 'Factura no encontrada' });
+      if (factura.estado === 'cancelado') {
+        return res.status(400).json({ error: 'La factura ya está cancelada' });
+      }
+
+      const eraParqueoPendiente = factura.tipoServicio === 'parqueo' && factura.estado === 'pendiente';
+      factura.estado = 'cancelado';
+      await factura.save();
+
+      // Si era un parqueo pendiente (vehículo aún adentro), liberar el puesto
+      if (eraParqueoPendiente && factura.puestoId) {
+        const puesto = await Puesto.findByPk(factura.puestoId);
+        if (puesto) {
+          const otraMensualidad = await Mensualidad.findOne({
+            where: { puestoId: puesto.id, estado: 'activo' },
+          });
+          if (!otraMensualidad) {
+            puesto.estado = 'libre';
+            await puesto.save();
+            const io = req.app.get('io');
+            if (io) io.emit('puesto_actualizado', puesto);
+          }
+        }
+      }
+
+      const io = req.app.get('io');
+      if (io) io.emit('factura_cancelada', factura);
+
+      res.json({ ok: true, factura });
+    } catch (error) {
+      console.error('Error cancelando factura:', error);
+      res.status(500).json({ error: 'Error al cancelar factura' });
     }
   },
 

@@ -1,7 +1,29 @@
-const { Mensualidad, Factura, Vehiculo, Cliente, Puesto, Tarifa } = require('../models');
+const { Mensualidad, Factura, Vehiculo, Cliente, Puesto, Tarifa, Configuracion } = require('../models');
 const { generarCodigoFactura } = require('../utils/codigoFactura');
 const { generateQR } = require('../utils/qrGenerator');
+const whatsappService = require('../services/whatsapp.service');
 const { Op } = require('sequelize');
+
+// Envía un mensaje de confirmación de mensualidad por WhatsApp (no bloqueante).
+async function enviarConfirmacionWhatsapp(mensualidad, vehiculo, puesto, valorTotal, tipo) {
+  try {
+    if (!whatsappService.isReady() || !vehiculo?.cliente?.telefono) return;
+    const config = await Configuracion.findOne();
+    const nombreNegocio = config?.nombreNegocio || 'ParkPro';
+    const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n || 0);
+    const accion = tipo === 'renovar' ? 'renovada' : 'activa';
+    const mensaje =
+      `🅿️ *${nombreNegocio}*\n` +
+      `Hola ${vehiculo.cliente.nombre}, tu mensualidad fue *${accion}* correctamente.\n\n` +
+      `🚗 Placa: *${vehiculo.placa}*\n` +
+      `🅿️ Puesto: #${puesto?.numero ?? '-'}\n` +
+      `📅 Inicio: ${mensualidad.fechaInicio}\n` +
+      `🔚 Vence: *${mensualidad.fechaFin}*\n` +
+      `💰 Valor: ${fmt(valorTotal)}\n\n` +
+      `Para consultar los días restantes, envía tu placa por este chat. ¡Gracias!`;
+    whatsappService.sendMessage(vehiculo.cliente.telefono, mensaje).catch(() => {});
+  } catch (e) { console.error('Error enviando confirmación mensualidad:', e.message); }
+}
 
 const mensualidadesController = {
   // POST /api/mensualidades — Register new monthly subscription
@@ -82,6 +104,9 @@ const mensualidadesController = {
           { model: Cliente, as: 'cliente' },
         ],
       });
+
+      // WhatsApp de confirmación al cliente
+      enviarConfirmacionWhatsapp(mensualidad, vehiculo, puesto, valorTotal, 'crear');
 
       res.status(201).json({ mensualidad: mensualidadCompleta, factura });
     } catch (error) {
@@ -182,6 +207,9 @@ const mensualidadesController = {
           { model: Cliente, as: 'cliente' },
         ],
       });
+
+      // WhatsApp de confirmación de renovación
+      enviarConfirmacionWhatsapp(mensualidad, mensualidadAnterior.vehiculo, puesto, valorTotal, 'renovar');
 
       res.status(201).json({ mensualidad: mensualidadCompleta, factura });
     } catch (error) {

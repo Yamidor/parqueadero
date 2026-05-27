@@ -93,59 +93,106 @@ io.on('connection', (socket) => {
   });
 });
 
-// Notify mensualidades that will expire soon via WhatsApp (3 and 2 days before)
-async function checkMensualidadesPorVencer() {
+// Aviso 1 día antes del vencimiento, a la hora configurada por el admin.
+async function checkAvisoMensualidad1Dia() {
   try {
     const { Mensualidad, Cliente, Vehiculo, NotificacionEnviada, Configuracion } = require('./models');
     const whatsappService = require('./services/whatsapp.service');
     if (!whatsappService.isReady()) return;
 
     const config = await Configuracion.findOne();
+    const horaAviso = (config?.horaAvisoMensualidad ?? 9);
+    if (new Date().getHours() !== horaAviso) return; // solo en la hora configurada
+
     const nombreNegocio = config?.nombreNegocio || 'el parqueadero';
 
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const targets = [
-      { dias: 3, tipo: 'vence_3d' },
-      { dias: 2, tipo: 'vence_2d' },
-    ];
+    const manana = new Date(hoy); manana.setDate(manana.getDate() + 1);
+    const fechaStr = manana.toISOString().split('T')[0];
 
-    for (const t of targets) {
-      const fechaObjetivo = new Date(hoy);
-      fechaObjetivo.setDate(fechaObjetivo.getDate() + t.dias);
-      const fechaStr = fechaObjetivo.toISOString().split('T')[0];
+    const mensualidades = await Mensualidad.findAll({
+      where: { estado: 'activo', fechaFin: fechaStr },
+      include: [
+        { model: Cliente, as: 'cliente' },
+        { model: Vehiculo, as: 'vehiculo' },
+      ],
+    });
 
-      const mensualidades = await Mensualidad.findAll({
-        where: { estado: 'activo', fechaFin: fechaStr },
-        include: [
-          { model: Cliente, as: 'cliente' },
-          { model: Vehiculo, as: 'vehiculo' },
-        ],
+    for (const m of mensualidades) {
+      const yaEnviado = await NotificacionEnviada.findOne({
+        where: { mensualidadId: m.id, tipo: 'aviso_1d' },
       });
+      if (yaEnviado) continue;
+      const tel = m.cliente?.telefono;
+      if (!tel) continue;
 
-      for (const m of mensualidades) {
-        const yaEnviado = await NotificacionEnviada.findOne({
-          where: { mensualidadId: m.id, tipo: t.tipo },
-        });
-        if (yaEnviado) continue;
-
-        const tel = m.cliente?.telefono;
-        if (!tel) continue;
-
-        const msg =
-          `🅿️ *${nombreNegocio}*\n` +
-          `Hola ${m.cliente.nombre}, te recordamos que tu mensualidad ` +
-          `para la placa *${m.vehiculo?.placa}* vence en *${t.dias} día${t.dias === 1 ? '' : 's'}* ` +
-          `(${m.fechaFin}).\n\nRenueva con tiempo para no perder el cupo. ¡Gracias!`;
-
-        const ok = await whatsappService.sendMessage(tel, msg);
-        if (ok) {
-          await NotificacionEnviada.create({ mensualidadId: m.id, tipo: t.tipo });
-          console.log(`💬 Aviso ${t.tipo} enviado a ${m.cliente.nombre} (${tel})`);
-        }
+      const msg =
+        `🅿️ *${nombreNegocio}*\n` +
+        `Hola ${m.cliente.nombre}, tu mensualidad para la placa *${m.vehiculo?.placa}* ` +
+        `*VENCE MAÑANA* (${m.fechaFin}).\n\n` +
+        `Tienes plazo hasta las *6:00 PM de mañana* para renovar.\n` +
+        `Si no se renueva, el puesto se liberará automáticamente.`;
+      const ok = await whatsappService.sendMessage(tel, msg);
+      if (ok) {
+        await NotificacionEnviada.create({ mensualidadId: m.id, tipo: 'aviso_1d' });
+        console.log(`💬 Aviso 1d enviado a ${m.cliente.nombre} (${tel})`);
       }
     }
   } catch (e) {
-    console.error('Error notificando mensualidades por vencer:', e.message);
+    console.error('Error en aviso 1 día:', e.message);
+  }
+}
+
+// A las 18:00 (6 PM): libera puestos cuya mensualidad vence HOY y no fue renovada.
+async function cerrarMensualidadesAlas6PM() {
+  try {
+    if (new Date().getHours() !== 18) return;
+    const { Mensualidad, Puesto, Cliente, Vehiculo, Configuracion } = require('./models');
+    const whatsappService = require('./services/whatsapp.service');
+    const hoy = new Date().toISOString().split('T')[0];
+
+    const vencenHoy = await Mensualidad.findAll({
+      where: { estado: 'activo', fechaFin: hoy },
+      include: [
+        { model: Cliente, as: 'cliente' },
+        { model: Vehiculo, as: 'vehiculo' },
+      ],
+    });
+
+    if (vencenHoy.length === 0) return;
+    const config = await Configuracion.findOne();
+    const nombreNegocio = config?.nombreNegocio || 'el parqueadero';
+
+    for (const m of vencenHoy) {
+      m.estado = 'vencido';
+      await m.save();
+      const puesto = await Puesto.findByPk(m.puestoId);
+      if (puesto) {
+        const otras = await Mensualidad.count({
+          where: { puestoId: m.puestoId, estado: 'activo', id: { [Op.ne]: m.id } },
+        });
+        if (otras === 0) {
+          puesto.estado = 'libre';
+          await puesto.save();
+          io.emit('puesto_actualizado', puesto);
+        }
+      }
+      io.emit('mensualidad_vencida', m);
+
+      // Notificar al cliente que se liberó el puesto
+      if (whatsappService.isReady() && m.cliente?.telefono) {
+        whatsappService.sendMessage(
+          m.cliente.telefono,
+          `🅿️ *${nombreNegocio}*\n` +
+          `Tu mensualidad para la placa *${m.vehiculo?.placa}* venció hoy (${m.fechaFin}) ` +
+          `y no se renovó. El puesto ha quedado *liberado*.\n\n` +
+          `Si deseas reactivar la mensualidad, acércate al parqueadero.`
+        ).catch(() => {});
+      }
+    }
+    console.log(`⏰ ${vencenHoy.length} mensualidad(es) cerradas a las 6 PM`);
+  } catch (e) {
+    console.error('Error cerrando mensualidades 6 PM:', e.message);
   }
 }
 
@@ -229,12 +276,14 @@ async function init() {
       console.log('⚙️  Configuración del negocio creada');
     }
 
-    // 7. Start cron for expired mensualidades
-    setInterval(checkMensualidadesVencidas, 60 * 60 * 1000); // Every hour
-    checkMensualidadesVencidas(); // Run once on startup
-
-    // 7b. Start cron for upcoming-expiry WhatsApp notices (every hour)
-    setInterval(checkMensualidadesPorVencer, 60 * 60 * 1000);
+    // 7. Crons (cada hora corre los 3; cada función decide si actúa según la hora actual)
+    const correrTareasMensualidad = async () => {
+      await checkMensualidadesVencidas();          // safety: cualquier vencida que se nos haya pasado
+      await cerrarMensualidadesAlas6PM();          // a las 18:00: libera puestos
+      await checkAvisoMensualidad1Dia();           // a la hora configurada: avisa "vence mañana"
+    };
+    setInterval(correrTareasMensualidad, 60 * 60 * 1000); // cada hora
+    correrTareasMensualidad(); // una vez al arrancar
 
     // 7c. Hook WhatsApp service to Socket.IO and resume saved session
     const whatsappService = require('./services/whatsapp.service');

@@ -60,6 +60,22 @@ export default function Configuracion() {
             </div>
           ))}
 
+          <div className="form-group">
+            <label>⏰ Hora del aviso de mensualidad (WhatsApp 1 día antes)</label>
+            <select
+              className="form-control"
+              value={config.horaAvisoMensualidad ?? 9}
+              onChange={(e) => setConfig({ ...config, horaAvisoMensualidad: parseInt(e.target.value, 10) })}
+            >
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>{String(h).padStart(2, '0')}:00 {h < 12 ? 'AM' : 'PM'}</option>
+              ))}
+            </select>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+              A esta hora se envía cada día el aviso "tu mensualidad vence mañana" a los clientes con vencimiento al día siguiente. A las 6:00 PM se libera automáticamente el puesto de los que vencieron sin renovar.
+            </div>
+          </div>
+
           <div className="flex gap-2 mt-4">
             <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
               {saving ? 'Guardando...' : '💾 Guardar Configuración'}

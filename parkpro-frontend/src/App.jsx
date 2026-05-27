@@ -12,6 +12,7 @@ import Clientes from './pages/Clientes';
 import Trabajadores from './pages/Trabajadores';
 import Tarifas from './pages/Tarifas';
 import Reportes from './pages/Reportes';
+import Facturas from './pages/Facturas';
 import Gastos from './pages/Gastos';
 import Nomina from './pages/Nomina';
 import Configuracion from './pages/Configuracion';
@@ -78,6 +79,11 @@ export default function App() {
           <Route path="/admin/reportes" element={
             <PrivateRoute role="admin">
               <AdminLayout><Reportes /></AdminLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/facturas" element={
+            <PrivateRoute role="admin">
+              <AdminLayout><Facturas /></AdminLayout>
             </PrivateRoute>
           } />
           <Route path="/admin/gastos" element={

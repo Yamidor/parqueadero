@@ -56,9 +56,27 @@ const reportesController = {
         raw: true,
       });
 
+      // Movimientos del periodo (cualquier estado != cancelado), para mostrar
+      // cuantos vehiculos llegaron, incluyendo los que aun no han hecho salida.
+      const movimientosPorTipo = await Factura.findAll({
+        where: {
+          estado: { [Op.ne]: 'cancelado' },
+          createdAt: { [Op.between]: [inicio, fin] },
+        },
+        attributes: [
+          'tipoServicio',
+          [fn('COUNT', col('id')), 'cantidad'],
+        ],
+        group: ['tipoServicio'],
+        raw: true,
+      });
+      const totalMovimientos = movimientosPorTipo.reduce((s, m) => s + parseInt(m.cantidad || 0), 0);
+
       res.json({
         totalIngresos,
         vehiculosAtendidos,
+        totalMovimientos,
+        movimientosPorTipo,
         ingresosPorTipo: facturas,
         totalGastos,
         totalNomina,

@@ -8,6 +8,7 @@ const adminLinks = [
   { to: '/admin/clientes', label: 'Clientes', icon: '👥' },
   { to: '/admin/trabajadores', label: 'Trabajadores', icon: '👤' },
   { to: '/admin/tarifas', label: 'Tarifas', icon: '💰' },
+  { to: '/admin/facturas', label: 'Facturas', icon: '🧾' },
   { to: '/admin/reportes', label: 'Reportes', icon: '📈' },
   { to: '/admin/gastos', label: 'Gastos', icon: '💸' },
   { to: '/admin/nomina', label: 'Nómina', icon: '📋' },
