@@ -136,7 +136,7 @@ export default function ModalMensualidad({ onClose }) {
               color: 'var(--text-primary)',
             }}
           >
-            <span>{p.tipo === 'moto' ? '🏍️' : '🚗'}</span>
+            <span>{p.tipo === 'moto' ? '🏍️' : p.tipo === 'carro' ? '🚗' : '🔄'}</span>
             <span>#{p.numero}</span>
           </button>
         ))}
